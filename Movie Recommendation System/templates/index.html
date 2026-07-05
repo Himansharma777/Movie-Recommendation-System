@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineMatch | AI-Powered Movie Recommendation System</title>
+    
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dark-theme">
+    
+    <!-- Navigation Bar -->
+    <header class="app-header">
+        <div class="header-container">
+            <a href="#" class="app-logo">
+                <i class="fa-solid fa-clapperboard logo-icon"></i>
+                <span>Cine<span>Match</span></span>
+            </a>
+            
+            <nav class="app-nav">
+                <a href="#recommendations-section" class="nav-link">Recommendations</a>
+                <a href="#favorites-section" class="nav-link">Favorites</a>
+                <a href="#stats-section" class="nav-link">Stats</a>
+            </nav>
+            
+            <div class="header-actions">
+                <button id="theme-toggle-btn" class="icon-btn" title="Toggle Theme" aria-label="Toggle Theme">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-backdrop"></div>
+            <div class="hero-content">
+                <div class="badge-premium">
+                    <i class="fa-solid fa-sparkles"></i> TF-IDF & Cosine Similarity Matcher
+                </div>
+                <h1 class="hero-title">Discover Your Next Movie Obsession</h1>
+                <p class="hero-subtitle">Enter a movie you love, and our smart recommendation engine will instantly suggest similar films you'll enjoy.</p>
+                
+                <!-- Search Box Container -->
+                <div class="search-box-wrapper">
+                    <div class="search-input-container">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="movie-search-input" placeholder="Type a movie name (e.g. Interstellar, The Godfather...)" autocomplete="off">
+                        <button id="clear-search-btn" class="clear-btn" style="display: none;"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <button id="recommend-btn" class="primary-btn">
+                        <span class="btn-text">Recommend</span>
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </button>
+                    
+                    <!-- Autocomplete dropdown list -->
+                    <div id="autocomplete-suggestions" class="suggestions-dropdown" style="display: none;"></div>
+                </div>
+
+                <div class="quick-choices">
+                    <span>Or try a random pick:</span>
+                    <button id="random-movie-btn" class="secondary-btn btn-sm">
+                        <i class="fa-solid fa-shuffle"></i> Random Movie
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Genre Explorer Section -->
+        <section class="genre-section">
+            <div class="section-header-centered">
+                <h2>Explore Genres</h2>
+                <p>Filter our library of top rated cinematic masterpieces</p>
+            </div>
+            <div class="genre-badges-container" id="genres-container">
+                <!-- Genres dynamically loaded here -->
+                <div class="genre-badge active" data-genre="All">All Genres</div>
+            </div>
+        </section>
+
+        <!-- Error Panel -->
+        <div id="error-message-panel" class="error-panel" style="display: none;">
+            <div class="error-content">
+                <i class="fa-solid fa-circle-exclamation error-icon"></i>
+                <p id="error-message-text">Movie not found. Please choose another movie.</p>
+                <button id="close-error-btn" class="close-btn-error"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+
+        <!-- Recommendations Results Section -->
+        <section id="recommendations-section" class="results-section" style="display: none;">
+            <div class="section-title-wrapper">
+                <div class="title-left">
+                    <span class="section-sub">Personalized Recommendations</span>
+                    <h2 class="section-main-title">Because you liked <span id="liked-movie-title" class="highlight-text">...</span></h2>
+                </div>
+            </div>
+            
+            <!-- Recommendations Loading skeleton state -->
+            <div id="recommendations-loading" class="skeleton-grid" style="display: none;">
+                <div class="skeleton-card">
+                    <div class="skeleton-image"></div>
+                    <div class="skeleton-text title"></div>
+                    <div class="skeleton-text meta"></div>
+                    <div class="skeleton-text desc"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-image"></div>
+                    <div class="skeleton-text title"></div>
+                    <div class="skeleton-text meta"></div>
+                    <div class="skeleton-text desc"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-image"></div>
+                    <div class="skeleton-text title"></div>
+                    <div class="skeleton-text meta"></div>
+                    <div class="skeleton-text desc"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-image"></div>
+                    <div class="skeleton-text title"></div>
+                    <div class="skeleton-text meta"></div>
+                    <div class="skeleton-text desc"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-image"></div>
+                    <div class="skeleton-text title"></div>
+                    <div class="skeleton-text meta"></div>
+                    <div class="skeleton-text desc"></div>
+                </div>
+            </div>
+
+            <!-- Recommendation Cards Grid -->
+            <div id="recommendations-grid" class="cards-grid"></div>
+        </section>
+
+        <!-- Split Section for Recent Searches & Favorites -->
+        <section class="split-display-section">
+            
+            <!-- Recent Searches -->
+            <div class="split-col recent-searches-col">
+                <div class="col-title-wrapper">
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Searches</h3>
+                    <button id="clear-history-btn" class="text-link-btn">Clear All</button>
+                </div>
+                <div id="recent-searches-list" class="recent-list">
+                    <p class="empty-state-text">Your search history is empty.</p>
+                </div>
+            </div>
+
+            <!-- Favorites Section -->
+            <div id="favorites-section" class="split-col favorites-col">
+                <div class="col-title-wrapper">
+                    <h3><i class="fa-solid fa-heart icon-favorite-active"></i> Your Favorites</h3>
+                </div>
+                <div id="favorites-grid" class="favorites-compact-grid">
+                    <p class="empty-state-text">No favorites added yet. Click on any card to add it to your list!</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Stats Section -->
+        <section id="stats-section" class="stats-section">
+            <div class="stats-bg-decoration"></div>
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper blue-gradient">
+                        <i class="fa-solid fa-film"></i>
+                    </div>
+                    <div class="stat-value" id="stat-movies-count">0</div>
+                    <div class="stat-label">Total Movies In Library</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper red-gradient">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
+                    <div class="stat-value" id="stat-genres-count">0</div>
+                    <div class="stat-label">Available Genres</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper gold-gradient">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div class="stat-value" id="stat-served-count">0</div>
+                    <div class="stat-label">Recommendations Generated</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Movie Details Modal -->
+    <div id="movie-details-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button id="close-modal-btn" class="modal-close-btn" aria-label="Close details modal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="modal-body">
+                <div class="modal-poster-col">
+                    <img id="modal-movie-poster" src="" alt="Movie Poster">
+                    <div id="modal-similarity-badge" class="modal-sim-badge" style="display: none;">
+                        <span id="modal-similarity-percentage">0%</span> Match
+                    </div>
+                </div>
+                <div class="modal-info-col">
+                    <div class="modal-meta-top">
+                        <span id="modal-movie-year" class="modal-year">2023</span>
+                        <span id="modal-movie-genre" class="modal-genre-badge">Sci-Fi</span>
+                        <div class="modal-rating">
+                            <i class="fa-solid fa-star star-filled"></i>
+                            <span id="modal-movie-rating">8.5</span>/10
+                        </div>
+                    </div>
+                    <h2 id="modal-movie-title" class="modal-title">Movie Title</h2>
+                    
+                    <div class="modal-description-wrapper">
+                        <h4>Overview</h4>
+                        <p id="modal-movie-description" class="modal-description">Movie overview text...</p>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button id="modal-favorite-btn" class="secondary-btn">
+                            <i class="fa-regular fa-heart"></i> Add to Favorites
+                        </button>
+                        <button id="modal-recommend-direct-btn" class="primary-btn">
+                            Find Similar <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="modal-related-section">
+                        <h4>You May Also Like</h4>
+                        <div id="modal-related-grid" class="modal-related-grid-layout">
+                            <!-- Populated with recommendations when browsing from a card -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p>&copy; 2026 CineMatch. Designed for film enthusiasts. Powered by Content-Based Machine Learning.</p>
+    </footer>
+
+    <!-- Custom Client Script -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
